@@ -8,9 +8,16 @@
 
 ;; External dependencies:
 ;;   - Cascadia Code font: https://github.com/microsoft/cascadia-code/releases
+;;     - For TUI operation, this is only needed on the terminal emulator and ligatures should be enabled. 
 ;;   - ag (the silver searcher)
+;;     - It should be installed on the system running Emacs
 ;;   - The emacs-lsp-booster executable from https://github.com/blahgeek/emacs-lsp-booster
+;;     - Sketchy executable from the internet.  It's only used once and can be safely removed.  Look for "booster" in
+;;       this file. 
 ;;   - The fonts for all-the-icons
+;;     - This is installed via an Emacs command (look up all-the-icons in M-x) and in TUI mode it is the responsibility
+;;       of the terminal emulator to render these glyphs correctly (some already offer it semi out of the box,
+;;       e.g. click a button to set up nerd fonts).
 
 
 ;;; Code:
