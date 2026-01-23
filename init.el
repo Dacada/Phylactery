@@ -245,6 +245,10 @@
   :config
   (browse-kill-ring-default-keybindings))
 
+(use-package xt-mouse
+   :config
+   (xterm-mouse-mode 1))
+
 ;; If I don't add this, eglot fails to load.
 (use-package project)
 
