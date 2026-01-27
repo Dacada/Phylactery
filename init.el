@@ -440,6 +440,9 @@
   :config
   (setq compilation-scroll-output 'first-error))
 
+;; Typescript mode because getting treesitter grammars is still a pain
+(use-package typescript-mode)
+
 ;; Debugger -- I've known it to generate warnings on load some times...
 (use-package realgud)
 
