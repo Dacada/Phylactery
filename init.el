@@ -256,6 +256,13 @@
    :config
    (xterm-mouse-mode 1))
 
+;; Mac on graphic display may fail to see alt-gr modified keys properly on Spanish keyboards without this
+(use-package term/ns-win
+  :straight nil
+  :if (and (eq system-type 'Darwin) (display-graphic-p))
+  :custom
+  (mac-right-option-modifier 'none))
+
 ;; If I don't add this, eglot fails to load.
 (use-package project)
 
