@@ -314,7 +314,7 @@
   :custom
   (projectile-indexing-method 'hybrid)
   (projectile-sort-order 'recently-active)
-  (projectile-enable-caching t)
+  (projectile-enable-caching 'persistent)
   :bind
   (:map projectile-mode-map
         ("M-p" . projectile-command-map)))
