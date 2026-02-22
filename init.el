@@ -18,6 +18,7 @@
 ;;     - This is installed via an Emacs command (look up all-the-icons in M-x) and in TUI mode it is the responsibility
 ;;       of the terminal emulator to render these glyphs correctly (some already offer it semi out of the box,
 ;;       e.g. click a button to set up nerd fonts).
+;;   - Gptel setup: manually adapt for the right LLM backend plus key
 
 
 ;;; Code:
@@ -474,6 +475,208 @@
              :host github
              :repo "jdtsmith/eglot-booster")
   :config (eglot-booster-mode))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; LLM setup
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Gptel, needs to be adapted to add the right backend and key.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(use-package gptel
+  :config
+  ;; 1. List directory contents
+  (gptel-make-tool
+   :name "list_directory"
+   :function (lambda (directory &optional recursive)
+               (unless (file-directory-p directory)
+                 (error "error: File %s is not a valid directory" directory))
+               (if recursive
+                   (mapconcat #'identity
+                              (directory-files-recursively directory ".*")
+                              "\n")
+                 (mapconcat #'identity
+                            (directory-files directory t "^[^.]")
+                            "\n")))
+   :description "List the contents of a given directory. Returns file and directory names, one per line. When recursive is true, lists all files in all subdirectories recursively."
+   :args (list '(:name "directory"
+                       :type string
+                       :description "The path to the directory to list.")
+               '(:name "recursive"
+                       :type boolean
+                       :description "If true, list contents recursively. Defaults to false."
+                       :optional t))
+   :category "filesystem")
+
+  ;; 2. Read file contents by path
+  (gptel-make-tool
+   :name "read_file"
+   :function (lambda (file-path)
+               (unless (file-exists-p file-path)
+                 (error "error: File %s does not exist" file-path))
+               (unless (file-readable-p file-path)
+                 (error "error: File %s is not readable" file-path))
+               (with-temp-buffer
+                 (insert-file-contents file-path)
+                 (buffer-substring-no-properties (point-min) (point-max))))
+   :description "Read and return the contents of a file at the given path."
+   :args (list '(:name "file-path"
+                       :type string
+                       :description "The full path to the file to read."))
+   :category "filesystem")
+
+  ;; 3. Read file metadata by path
+  (gptel-make-tool
+   :name "file_metadata"
+   :function (lambda (file-path)
+               (unless (file-exists-p file-path)
+                 (error "error: File %s does not exist" file-path))
+               (let* ((attrs (file-attributes file-path 'string))
+                      (type (file-attribute-type attrs))
+                      (size (file-attribute-size attrs))
+                      (mod-time (format-time-string "%Y-%m-%d %H:%M:%S"
+                                                    (file-attribute-modification-time attrs)))
+                      (modes (file-attribute-modes attrs)))
+                 (format "path: %s\ntype: %s\nsize: %d bytes\nmodified: %s\npermissions: %s"
+                         file-path
+                         (cond ((eq type t) "directory")
+                               ((stringp type) (format "symlink -> %s" type))
+                               (t "regular file"))
+                         size
+                         mod-time
+                         modes)))
+   :description "Return metadata about a file or directory: type (regular file, directory, symlink), size in bytes, modification time, and permissions."
+   :args (list '(:name "file-path"
+                       :type string
+                       :description "The full path to the file or directory."))
+   :category "filesystem")
+
+  ;; 4. Search with ag
+  (gptel-make-tool
+   :name "search_ag"
+   :function (lambda (search-string directory &optional file-type)
+               (unless (file-directory-p directory)
+                 (error "error: File %s is not a valid directory" directory))
+               (unless (executable-find "ag")
+                 (error "error: Program ag (the silver searcher) is not installed"))
+               (let ((cmd (concat "ag --nocolor --nogroup "
+                                  (when file-type
+                                    (concat "--" file-type " "))
+                                  (shell-quote-argument search-string)
+                                  " "
+                                  (shell-quote-argument (expand-file-name directory)))))
+                 (let ((result (shell-command-to-string cmd)))
+                   (if (string-empty-p result)
+                       "No matches found."
+                     result))))
+   :description "Search for a string pattern in files under a directory using ag (the silver searcher). Returns matching lines with file paths and line numbers. Optionally filter by file type (e.g. 'python', 'js', 'rust')."
+   :args (list '(:name "search-string"
+                       :type string
+                       :description "The search pattern (string or regex) to look for.")
+               '(:name "directory"
+                       :type string
+                       :description "The base directory to search in.")
+               '(:name "file-type"
+                       :type string
+                       :description "Optional file type filter for ag, e.g. 'python', 'js', 'rust', 'elisp'. Corresponds to ag's --TYPE option."
+                       :optional t))
+   :category "search")
+
+  ;; 5. Run arbitrary shell command
+  (gptel-make-tool
+   :name "shell_command"
+   :function (lambda (command directory)
+               (unless (file-directory-p directory)
+                 (error "error: File %s is not a valid directory" directory))
+               (let ((default-directory (expand-file-name directory)))
+                 (shell-command-to-string command)))
+   :description "Run an arbitrary shell command in a given working directory and return its output. Use this for git commands, build tools, or other CLI operations. This tool will always ask the user for confirmation before running."
+   :args (list '(:name "command"
+                       :type string
+                       :description "The shell command to execute.")
+               '(:name "directory"
+                       :type string
+                       :description "The working directory in which to run the command."))
+   :confirm t
+   :category "shell")
+
+  ;; 6. Create/overwrite a file
+  (gptel-make-tool
+   :name "create_file"
+   :function (lambda (path contents overwrite)
+               (if (not (eq overwrite :json-false))
+                   (unless (file-exists-p path)
+                     (error "error: File %s does not exist, cannot overwrite" path))
+                 (when (file-exists-p path)
+                   (error "error: File %s already exists, refusing to create" path)))
+               (let ((dir (file-name-directory path)))
+                 (when (and dir (not (file-directory-p dir)))
+                   (make-directory dir t)))
+               (with-temp-file path
+                 (insert contents))
+               (format "Successfully %s %s" (if (not (eq overwrite :json-false)) "overwrote" "created") path))
+   :description "Create a new file or overwrite an existing file with the given contents. When overwrite is false, errors if the file already exists. When overwrite is true, errors if the file does not exist. Parent directories are created as needed."
+   :args (list '(:name "path"
+                       :type string
+                       :description "The full path to the file to create or overwrite.")
+               '(:name "contents"
+                       :type string
+                       :description "The contents to write to the file.")
+               '(:name "overwrite"
+                       :type boolean
+                       :description "If true, overwrite an existing file. If false, create a new file."))
+   :category "filesystem")
+
+  ;; 7. Edit file in place
+  (gptel-make-tool
+   :name "edit_file"
+   :function (lambda (path old_text new_text &optional which_match)
+               (unless (file-exists-p path)
+                 (error "error: File %s does not exist" path))
+               (let* ((content (with-temp-buffer
+                                 (insert-file-contents path)
+                                 (buffer-string)))
+                      (target-n (or which_match 0))
+                      (pos nil)
+                      (search-start 0)
+                      (count 0))
+                 ;; Find all occurrences
+                 (let ((p (string-search old_text content search-start)))
+                   (while p
+                     (when (= count target-n)
+                       (setq pos p))
+                     (setq count (1+ count))
+                     (setq search-start (+ p 1))
+                     (setq p (string-search old_text content search-start))))
+                 (when (and (> count 1) (not which_match))
+                   (error "error: Search text found %d times in %s (use which_match to disambiguate)"
+                          count path))
+                 (unless pos
+                   (if which_match
+                       (error "error: Match index %d out of range, only %d occurrence(s) found in %s"
+                              which_match count path)
+                     (error "error: Search text not found in %s" path)))
+                 (let ((new-content (concat (substring content 0 pos)
+                                            new_text
+                                            (substring content (+ pos (length old_text))))))
+                   (with-temp-file path
+                     (insert new-content)))
+                 (format "Successfully edited %s (match %d of %d)" path target-n count)))
+   :description "Edit a file by replacing an occurrence of a search string with new text. The old text must appear exactly once in the file; errors if it is not found or if it appears more than once. In the rare case where the search text cannot be made unique, use which_match to specify the 0-indexed occurrence to replace — but prefer making old_text unique whenever possible."
+   :args (list '(:name "path"
+                       :type string
+                       :description "The full path to the file to edit.")
+               '(:name "old_text"
+                       :type string
+                       :description "The exact text to find in the file. Must appear exactly once unless which_match is specified.")
+               '(:name "new_text"
+                       :type string
+                       :description "The text to replace old_text with.")
+               '(:name "which_match"
+                       :type integer
+                       :description "0-indexed occurrence to replace when old_text appears multiple times. Discouraged: prefer making old_text unique instead."
+                       :optional t))
+   :category "filesystem"))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
