@@ -294,6 +294,12 @@ overridden to prevent RCE from malicious git config.")
    :config
    (xterm-mouse-mode 1))
 
+;; Tramp for toolbox containers
+(use-package toolbox-tramp
+  :straight (toolbox-tramp :type git
+			     :host github
+			     :repo "fejfighter/toolbox-tramp"))
+
 ;; If I don't add this, eglot fails to load.
 (use-package project)
 
