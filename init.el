@@ -389,8 +389,6 @@ overridden to prevent RCE from malicious git config.")
 
 ;; Highlight TODOs
 (use-package hl-todo
-  :custom-face
-  (hl-todo ((t (:inherit hl-todo :italic t))))
   :hook ((prog-mode . hl-todo-mode)
          (yaml-mode . hl-todo-mode)))
 
