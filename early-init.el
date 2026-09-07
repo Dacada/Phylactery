@@ -1,5 +1,4 @@
-;;; early-init --- Early init file
-;;; -*- lexical-binding: t -*-
+;;; early-init --- Early init file  -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 

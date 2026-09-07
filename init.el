@@ -1,5 +1,4 @@
-;;; init -- Init file
-;;; -*- lexical-binding: t -*-
+;;; init -- Init file  -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 
