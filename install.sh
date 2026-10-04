@@ -3,7 +3,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-TARGET_DIR="${HOME}/.config/emacs"
+TARGET_DIR="${EMACS_CONFIG_DIR:-${HOME}/.config/emacs}"
 
 INIT_SRC="${SCRIPT_DIR}/init.el"
 EARLY_INIT_SRC="${SCRIPT_DIR}/early-init.el"
