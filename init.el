@@ -90,6 +90,7 @@
   ("<M-mouse-1>" . nil)	  ; was mouse-start-secondary
   ("<M-mouse-2>" . nil)	  ; was mouse-yank-secondary
   ("<M-mouse-3>" . nil)	  ; was mouse-secondary-save-then-kill
+  ("C-x C-c" . nil)   ; was save-buffers-and-kill-terminal
   :custom
   (frame-resize-pixelwise t "Resize frames pixelwise, obviously")
   (default-frame-alist '((menu-bar-lines 0)
@@ -177,7 +178,8 @@ overridden to prevent RCE from malicious git config.")
   (delete-old-versions t)
   (kept-new-versions 6)
   (kept-old-versions 2)
-  (version-control t))
+  (version-control t)
+  (confirm-kill-emacs #'yes-or-no-p))
 
 ;; We don't use Customize in this house
 (use-package cus-edit
