@@ -7,9 +7,10 @@ TARGET_DIR="${EMACS_CONFIG_DIR:-${HOME}/.config/emacs}"
 
 INIT_SRC="${SCRIPT_DIR}/init.el"
 EARLY_INIT_SRC="${SCRIPT_DIR}/early-init.el"
+SCRATCH_FILE_SRC="${SCRIPT_DIR}/scratch.el"
 
 # Ensure source files exist.
-for file in "$INIT_SRC" "$EARLY_INIT_SRC"; do
+for file in "$INIT_SRC" "$EARLY_INIT_SRC" "SCRATCH_FILE_SRC"; do
     if [[ ! -f "$file" ]]; then
         echo "Error: Required file not found: $file" >&2
         exit 1
@@ -26,7 +27,9 @@ mkdir -p "$TARGET_DIR"
 
 ln -s "$INIT_SRC" "$TARGET_DIR/init.el"
 ln -s "$EARLY_INIT_SRC" "$TARGET_DIR/early-init.el"
+ln -s "$SCRATCH_FILE_SRC" "$TARGET_DIR/early-init.el"
 
 echo "Created ${TARGET_DIR} and installed symlinks:"
 echo "  init.el -> $INIT_SRC"
 echo "  early-init.el -> $EARLY_INIT_SRC"
+echo "  scratch.el -> $SCRATCH_FILE_SRC"

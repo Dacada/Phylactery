@@ -106,8 +106,17 @@
   (tab-width 4 "And if tabs, 4 spaces wide")
   (debug-on-quit nil "Set this to t to enter the debugger on C-g")
   (fill-column 120 "line wrap after 120 columns")
+  (initial-scratch-message
+   (with-temp-buffer
+     (insert-file-contents
+      (expand-file-name "scratch.el" user-emacs-directory))
+     (buffer-string)))
   :custom-face
-  (default ((t (:font "Cascadia Code")))))  ;; Use Cascadia Code font by default
+  (default ((t (:font "Cascadia Code")))) ;; Use Cascadia Code font by default
+  :hook
+  (emacs-startup . (lambda ()
+                     (with-current-buffer "*scratch*"
+                       (eval-buffer)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
