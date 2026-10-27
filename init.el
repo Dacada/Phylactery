@@ -130,6 +130,11 @@
 ;; section
 (use-package org)
 
+(use-package vc-hooks
+  :straight nil
+  :custom
+  (vc-follow-symlinks t "Don't ask when visiting a symlink to a vc-controlled file"))
+
 (use-package vc-git
   :straight nil
   :config
