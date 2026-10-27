@@ -756,6 +756,10 @@ Example path: '(\"Daily\" \"Q4 2026\" \"W43\" \"2026-10-20 Tue\")"
 
 ;; cool mode line inspired by doom emacs
 (use-package mood-line
+  ;; only on emacs compiled with graphical support: this doesn't really work great on TUI
+  :if (string-match-p
+       "\\b\\(X11\\|PGTK\\|NS\\|W32\\)\\b"
+       system-configuration-features)
   :custom-face
   (mode-line ((t (:inherit default (:box (:line-width -1 :style released-button))))))
   :hook
