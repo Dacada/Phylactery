@@ -628,7 +628,7 @@ overridden to prevent RCE from malicious git config.")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Org
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Customizations for org-mode. I barely do note taking.
+;; Customizations for org-mode.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (use-package calendar
@@ -637,11 +637,49 @@ overridden to prevent RCE from malicious git config.")
   (calendar-week-start-day 1))
 
 (use-package org
-  :straight nil
-  :defer t
-  :custom
-  (org-adapt-indentation t)
-  (org-src-tab-acts-natively t))
+  :ensure nil ; Built-in to Emacs
+  :bind
+  (("C-c a" . my-org--agenda-today-subtree))
+  :config
+
+  (require 'org-agenda)
+  (setq org-directory "~/org"
+        org-agenda-files '("~/org/stuff.org")
+        org-agenda-start-day "-7d"
+        org-agenda-span 28
+        org-agenda-start-on-weekday nil)
+
+  (defun my-org--get-org-today-heading-path ()
+    "Generates the list of heading titles targeting today's date heading.
+Example path: '(\"Daily\" \"Q4 2026\" \"W43\" \"2026-10-20 Tue\")"
+    (let* ((now (decode-time))
+           (year (nth 5 now))
+           (month (nth 4 now))
+           (day (nth 3 now))
+           (quarter (format "Q%d %d" (1+ (/ (1- month) 3)) year))
+           ;; ISO week number
+           (week (format "W%s" (format-time-string "%V")))
+           ;; Org date format matching <YYYY-MM-DD Day>
+           (today-date (format-time-string "<%Y-%m-%d %a>")))
+      (list "Daily" quarter week today-date)))
+
+  (defun my-org--stuff-file ()
+    (let ((file (expand-file-name "stuff.org" org-directory)))
+      (unless (file-exists-p file)
+        (error "File %s does not exist" file))
+      file))
+
+  (defun my-org--agenda-today-subtree ()
+    "Opens Org Agenda restricted ONLY to today daily subtree in stuff.org."
+    (interactive)
+    (org-agenda-remove-restriction-lock)
+    (with-current-buffer (find-file-noselect (my-org--stuff-file))
+      (save-excursion
+        (save-restriction
+          (widen)
+          (goto-char (org-find-olp (my-org--get-org-today-heading-path) t))
+          (org-agenda-set-restriction-lock 'subtree))))
+    (org-agenda-list)))
 
 (use-package org-bullets
   :ensure t
