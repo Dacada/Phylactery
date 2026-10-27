@@ -278,7 +278,18 @@ overridden to prevent RCE from malicious git config.")
 ;; move around windows with S-left/right/down/up
 (use-package windmove
   :config
-  (windmove-default-keybindings))
+  (windmove-default-keybindings)
+
+  ;; Add a little toggle to avoid conflicts with major modes that like using S-arrow (like org, mostly org, it's
+  ;; actually only org)
+  (defun my-windmove--toggle ()
+    "Toggle windmove-mode globally."
+    (interactive)
+    (if windmove-mode
+        (windmove-mode -1)
+      (windmove-mode 1))
+    (message "Windmove %s" (if windmove-mode "enabled" "disabled")))
+  (global-set-key (kbd "C-c w") #'my-windmove--toggle))
 
 ;; if you start typing when a region is selected, replace it with whatever you're typing
 (use-package delsel
